@@ -25,23 +25,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Add click handlers for social icons and buttons
-    const socialIcons = document.querySelectorAll('.social-icon');
-    socialIcons.forEach(icon => {
-        icon.addEventListener('click', function(e) {
-            e.preventDefault();
-            const platform = this.getAttribute('aria-label');
-            // Здесь можно добавить реальные ссылки
-            console.log(`Clicked on ${platform}`);
-        });
-    });
+    // Social icons теперь работают как обычные ссылки
+    // Обработчик удален, чтобы не блокировать переходы по ссылкам
 
     const navButtons = document.querySelectorAll('.nav-button');
     navButtons.forEach(button => {
         button.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            // Если это реальная ссылка (не "#"), не блокируем переход
+            if (href && href !== '#' && !href.startsWith('javascript:')) {
+                return; // Позволяем браузеру обработать ссылку
+            }
+            // Блокируем только для кнопок без реальных ссылок
             e.preventDefault();
             const buttonText = this.querySelector('.button-text').textContent;
-            // Здесь можно добавить реальные ссылки или действия
             console.log(`Clicked on ${buttonText}`);
         });
     });
