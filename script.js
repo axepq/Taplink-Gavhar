@@ -120,7 +120,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                 });
 
-                const data = await response.json();
+                // Проверяем статус ответа
+                if (!response.ok && response.status === 0) {
+                    throw new Error('Не удалось подключиться к серверу. Проверьте, что сайт задеплоен на Vercel.');
+                }
+
+                // Читаем ответ от сервера
+                let data;
+                try {
+                    const text = await response.text();
+                    if (!text) {
+                        throw new Error(`Сервер вернул пустой ответ (статус: ${response.status}). Проверьте логи в Vercel.`);
+                    }
+
+                    // Пытаемся распарсить как JSON
+                    try {
+                        data = JSON.parse(text);
+                    } catch (jsonError) {
+                        // Если не JSON, показываем текст ответа
+                        throw new Error(`Сервер вернул неверный формат: ${text.substring(0, 200)}`);
+                    }
+                } catch (parseError) {
+                    if (parseError.message.includes('Сервер вернул')) {
+                        throw parseError;
+                    }
+                    throw new Error(`Ошибка обработки ответа: ${parseError.message}`);
+                }
 
                 if (response.ok && data.success) {
                     showStatus('success', '✅ Сообщение успешно отправлено!');
@@ -131,9 +156,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         formStatus.style.display = 'none';
                     }, 2000);
                 } else {
-                    showStatus('error', `Ошибка: ${data.error || 'Не удалось отправить сообщение'}`);
+                    const errorMsg = data.error || data.message || 'Не удалось отправить сообщение';
+                    showStatus('error', `Ошибка: ${errorMsg}`);
                 }
             } catch (error) {
+                console.error('Ошибка отправки формы:', error);
                 showStatus('error', `Ошибка отправки: ${error.message}`);
             } finally {
                 submitBtn.disabled = false;
