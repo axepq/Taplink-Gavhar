@@ -32,8 +32,8 @@ export default async function handler(req, res) {
     }
 
     // Проверяем обязательные поля
-    if (!name || !message) {
-      res.status(400).json({ error: 'Имя и сообщение обязательны' });
+    if (!name || !message || !phone) {
+      res.status(400).json({ error: 'Имя, телефон и сообщение обязательны' });
       return;
     }
 

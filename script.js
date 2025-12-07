@@ -90,6 +90,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Ограничение ввода только цифрами и знаком + в поле телефона
+    const phoneInput = document.getElementById('feedback-phone');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function(e) {
+            // Удаляем все символы, кроме цифр и знака +
+            this.value = this.value.replace(/[^0-9+]/g, '');
+        });
+
+        // Предотвращаем вставку нецифровых символов (кроме +)
+        phoneInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            const digitsAndPlus = pastedText.replace(/[^0-9+]/g, '');
+            this.value = digitsAndPlus;
+        });
+
+        // Предотвращаем ввод нецифровых символов при нажатии клавиш (кроме +)
+        phoneInput.addEventListener('keypress', function(e) {
+            // Разрешаем только цифры, знак + и специальные клавиши (Backspace, Delete, Tab, Escape, Enter, стрелки)
+            const char = String.fromCharCode(e.which);
+            if (!/[0-9+]/.test(char) && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+            }
+        });
+    }
+
     // Submit form
     if (feedbackForm) {
         feedbackForm.addEventListener('submit', async function(e) {
