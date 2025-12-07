@@ -39,14 +39,25 @@ export default async function handler(req, res) {
 
     // Получаем токен бота и Chat ID из переменных окружения
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHAT_ID;
+    const mainChatId = process.env.TELEGRAM_CHAT_ID;
 
-    if (!botToken || !chatId) {
+    if (!botToken) {
       res.status(500).json({
         error: 'Telegram бот не настроен. Проверьте переменные окружения.'
       });
       return;
     }
+
+    // Список всех Chat ID для отправки сообщений
+    const chatIds = [];
+
+    // Добавляем основной Chat ID из переменных окружения (если есть)
+    if (mainChatId) {
+      chatIds.push(mainChatId);
+    }
+
+    // Добавляем дополнительные Chat ID
+    chatIds.push('1671115929', '7991108616', '191886374');
 
     // Форматируем сообщение
     const telegramMessage = `📝 <b>Новый отзыв/предложение</b>\n\n` +
@@ -54,46 +65,53 @@ export default async function handler(req, res) {
       (phone ? `📞 <b>Телефон:</b> ${phone}\n` : '') +
       `💬 <b>Сообщение:</b>\n${message}`;
 
-    // Отправляем сообщение в Telegram
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: telegramMessage,
-        parse_mode: 'HTML'
-      })
+    // Отправляем сообщение во все чаты
+    const sendPromises = chatIds.map(async (chatId) => {
+      try {
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: telegramMessage,
+            parse_mode: 'HTML'
+          })
+        });
+
+        const text = await response.text();
+        if (!text) {
+          return { success: false, chatId, error: 'Пустой ответ от Telegram API' };
+        }
+
+        const data = JSON.parse(text);
+        if (response.ok && data.ok) {
+          return { success: true, chatId };
+        } else {
+          return { success: false, chatId, error: data.description || 'Неизвестная ошибка' };
+        }
+      } catch (error) {
+        return { success: false, chatId, error: error.message };
+      }
     });
 
-    // Читаем ответ от Telegram API
-    let data;
-    try {
-      const text = await response.text();
-      if (!text) {
-        res.status(500).json({
-          error: 'Telegram API вернул пустой ответ'
-        });
-        return;
-      }
-      data = JSON.parse(text);
-    } catch (parseError) {
-      res.status(500).json({
-        error: 'Ошибка при обработке ответа от Telegram API'
-      });
-      return;
-    }
+    // Ждем результаты отправки во все чаты
+    const results = await Promise.all(sendPromises);
 
-    if (response.ok && data.ok) {
+    // Проверяем, успешно ли отправлено хотя бы в один чат
+    const successCount = results.filter(r => r.success).length;
+
+    if (successCount > 0) {
       res.status(200).json({
         success: true,
-        message: 'Сообщение успешно отправлено!'
+        message: `Сообщение успешно отправлено в ${successCount} из ${chatIds.length} чатов!`
       });
       return;
     } else {
       res.status(500).json({
-        error: data.description || 'Не удалось отправить сообщение'
+        error: 'Не удалось отправить сообщение ни в один чат',
+        details: results
       });
       return;
     }
