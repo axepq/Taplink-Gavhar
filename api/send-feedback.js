@@ -57,7 +57,7 @@ export default async function handler(req, res) {
     }
 
     // Добавляем дополнительные Chat ID
-    chatIds.push('1671115929', '7991108616', '191886374');
+    chatIds.push('1671115929', '7991108616', '191886374', '5062390602', '1265478919');
 
     // Форматируем сообщение
     const telegramMessage = `📝 <b>Новый отзыв/предложение</b>\n\n` +
